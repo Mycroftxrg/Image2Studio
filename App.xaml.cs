@@ -30,7 +30,6 @@ public partial class App : Application
             return;
         }
 
-        AppUpdateService.MarkAutoCheckCompleted();
         await Task.Delay(TimeSpan.FromSeconds(3));
 
         try
@@ -44,19 +43,14 @@ public partial class App : Application
             }
 
             var updateNotes = await updateService.GetUpdateNotesAsync(update);
-            var notes = string.IsNullOrWhiteSpace(updateNotes) ? string.Empty : $"{Environment.NewLine}{Environment.NewLine}{updateNotes}";
-            var confirmed = await page.DisplayAlertAsync(
-                "发现新版本",
-                $"当前版本：{update.CurrentVersion}{Environment.NewLine}最新版本：{update.LatestVersion}{notes}",
-                "下载并安装",
-                "稍后");
+            var confirmed = await UpdatePromptPage.ShowAsync(page, update, updateNotes);
             if (!confirmed)
             {
                 return;
             }
 
             var installerPath = await updateService.DownloadInstallerAsync(update);
-            updateService.LaunchInstallerAndQuit(installerPath);
+            updateService.LaunchInstallerForUpdate(installerPath);
         }
         catch (Exception ex)
         {
