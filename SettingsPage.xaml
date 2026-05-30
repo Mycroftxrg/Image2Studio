@@ -1,0 +1,426 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Image2Studio.SettingsPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="True"
+    Title="设置">
+
+    <Grid BackgroundColor="{AppThemeBinding Light={StaticResource PageBg}, Dark={StaticResource PageBgDark}}">
+        <ScrollView>
+            <VerticalStackLayout
+                x:Name="SettingsRoot"
+                Padding="22"
+                Spacing="14">
+
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                    <VerticalStackLayout Spacing="5">
+                        <Label Text="接入与保存" Style="{StaticResource TitleText}" />
+                        <Label
+                            x:Name="StatusLabel"
+                            Text="接入配置和低频图片参数会自动保存。"
+                            Style="{StaticResource Caption}" />
+                    </VerticalStackLayout>
+                    <Button
+                        Grid.Column="1"
+                        Text="完成"
+                        Padding="16,9"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}"
+                        TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource TextStrongDark}}"
+                        BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                        BorderWidth="1"
+                        HeightRequest="42"
+                        MinimumHeightRequest="42"
+                        VerticalOptions="Start"
+                        Pressed="OnButtonPressed"
+                        Released="OnButtonReleased"
+                        Clicked="OnBackClicked" />
+                </Grid>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="生图接口" Style="{StaticResource SectionTitle}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="保存"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                BorderWidth="1"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnSaveClicked" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="API Key" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Entry
+                                        x:Name="ApiKeyEntry"
+                                        IsPassword="True"
+                                        TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Base URL" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Entry
+                                        x:Name="BaseUrlEntry"
+                                        TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="模型" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Picker x:Name="ModelPicker" SelectedIndexChanged="OnSettingsChanged">
+                                        <Picker.Items>
+                                            <x:String>gpt-image-2-vip</x:String>
+                                            <x:String>gpt-image-2-pro</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="Group" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Entry
+                                        x:Name="GroupEntry"
+                                        TextChanged="OnSettingsChanged" />
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="多接口" Style="{StaticResource SectionTitle}" />
+                                <Label Text="额外接口只填写标题和 API Key，其他参数跟随默认接口。" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="添加"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                BorderWidth="1"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnAddConnectionCardClicked" />
+                        </Grid>
+
+                        <VerticalStackLayout
+                            x:Name="ConnectionCardsStack"
+                            Spacing="10" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="DeepSeek 提示词扩写" Style="{StaticResource SectionTitle}" />
+                                <Label Text="独立于生图接口，只用于创建/编辑任务时扩写提示词。" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="保存"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                BorderWidth="1"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnSaveClicked" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="DeepSeek API Key" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                <Entry
+                                    x:Name="DeepSeekApiKeyEntry"
+                                    IsPassword="True"
+                                    TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="DeepSeek Base URL" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                <Entry
+                                    x:Name="DeepSeekBaseUrlEntry"
+                                    TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="扩写模型" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                <Picker x:Name="DeepSeekModelPicker" SelectedIndexChanged="OnSettingsChanged">
+                                    <Picker.Items>
+                                        <x:String>deepseek-chat</x:String>
+                                        <x:String>deepseek-reasoner</x:String>
+                                    </Picker.Items>
+                                </Picker>
+                            </Border>
+                        </VerticalStackLayout>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="扩写前置提示词" Style="{StaticResource Caption}" />
+                            <Border Padding="12,8" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                <Editor
+                                    x:Name="DeepSeekSystemPromptEditor"
+                                    AutoSize="Disabled"
+                                    MinimumHeightRequest="220"
+                                    TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="自动保存" Style="{StaticResource SectionTitle}" />
+                                <Label
+                                    x:Name="OutputRootLabel"
+                                    Text="未设置"
+                                    Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="选择文件夹"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource Accent}, Dark={StaticResource ChipTextDark}}"
+                                BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                BorderWidth="1"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnPickOutputFolderClicked" />
+                        </Grid>
+
+                        <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                            <Entry
+                                x:Name="OutputRootEntry"
+                                TextChanged="OnSettingsChanged" />
+                        </Border>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="软件更新" Style="{StaticResource SectionTitle}" />
+                                <Label
+                                    x:Name="UpdateStatusLabel"
+                                    Text="通过 GitHub Releases 获取 Windows 安装包更新。"
+                                    Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="检查更新"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource Accent}, Dark={StaticResource ChipTextDark}}"
+                                BorderColor="{AppThemeBinding Light={StaticResource BorderSoft}, Dark={StaticResource BorderSoftDark}}"
+                                BorderWidth="1"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnCheckUpdatesClicked" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <CheckBox
+                                x:Name="AutoCheckUpdatesCheckBox"
+                                CheckedChanged="OnSettingsChanged"
+                                VerticalOptions="Center" />
+                            <Label
+                                Grid.Column="1"
+                                Text="启动时自动检查更新"
+                                Style="{StaticResource Caption}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="更新信息地址" Style="{StaticResource Caption}" />
+                            <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                <Entry
+                                    x:Name="UpdateManifestUrlEntry"
+                                    TextChanged="OnSettingsChanged" />
+                            </Border>
+                        </VerticalStackLayout>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Label Text="默认图片参数" Style="{StaticResource SectionTitle}" />
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="响应格式" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Picker x:Name="ResponseFormatPicker" SelectedIndexChanged="OnSettingsChanged">
+                                        <Picker.Items>
+                                            <x:String>url</x:String>
+                                            <x:String>b64_json</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="输出格式" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Picker x:Name="FormatPicker" SelectedIndexChanged="OnSettingsChanged">
+                                        <Picker.Items>
+                                            <x:String>png</x:String>
+                                            <x:String>jpeg</x:String>
+                                            <x:String>webp</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="5">
+                                <Label Text="背景" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Picker x:Name="BackgroundPicker" SelectedIndexChanged="OnSettingsChanged">
+                                        <Picker.Items>
+                                            <x:String>auto</x:String>
+                                            <x:String>transparent</x:String>
+                                            <x:String>opaque</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Border>
+                            </VerticalStackLayout>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="5">
+                                <Label Text="保存位置" Style="{StaticResource Caption}" />
+                                <Border Padding="12,0" BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}">
+                                    <Picker x:Name="SaveLocationPicker" SelectedIndexChanged="OnSettingsChanged">
+                                        <Picker.Items>
+                                            <x:String>每次询问保存位置</x:String>
+                                            <x:String>快速保存到应用目录</x:String>
+                                        </Picker.Items>
+                                    </Picker>
+                                </Border>
+                            </VerticalStackLayout>
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <CheckBox
+                                x:Name="TransparentCheckBox"
+                                CheckedChanged="OnSettingsChanged"
+                                VerticalOptions="Center" />
+                            <Label
+                                Grid.Column="1"
+                                Text="发送 transparent=true"
+                                Style="{StaticResource Caption}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="12">
+                        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                            <VerticalStackLayout Spacing="3">
+                                <Label Text="高级" Style="{StaticResource SectionTitle}" />
+                            </VerticalStackLayout>
+                            <Button
+                                Grid.Column="1"
+                                Text="恢复默认"
+                                Padding="12,8"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource Gray200}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                HeightRequest="40"
+                                MinimumHeightRequest="40"
+                                VerticalOptions="Start"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnResetDefaultsClicked" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <CheckBox
+                                x:Name="StreamChatCheckBox"
+                                CheckedChanged="OnSettingsChanged"
+                                VerticalOptions="Center" />
+                            <Label
+                                Grid.Column="1"
+                                Text="聊天接口 stream=true"
+                                Style="{StaticResource Caption}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+
+                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                            <CheckBox
+                                x:Name="AsyncTaskCheckBox"
+                                CheckedChanged="OnSettingsChanged"
+                                VerticalOptions="Center" />
+                            <Label
+                                Grid.Column="1"
+                                Text="使用异步任务接口并自动轮询"
+                                Style="{StaticResource Caption}"
+                                VerticalTextAlignment="Center" />
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Padding="16">
+                    <VerticalStackLayout Spacing="10">
+                        <Label Text="使用说明" Style="{StaticResource SectionTitle}" />
+                        <Label
+                            Text="1. 在设置里配置生图接口 API Key；如需并发，添加多个 Image2 API 卡片。"
+                            Style="{StaticResource Caption}" />
+                        <Label
+                            Text="2. 如需扩写提示词，单独填写 DeepSeek API Key 并选择 chat 或 reasoner 模型。"
+                            Style="{StaticResource Caption}" />
+                        <Label
+                            Text="3. 回到首页进入创建任务，填写标题、提示词、参考图、尺寸和接口分配。"
+                            Style="{StaticResource Caption}" />
+                        <Label
+                            Text="4. 任务加入队列后可继续编辑、调整顺序、停止、重试或删除。"
+                            Style="{StaticResource Caption}" />
+                        <Label
+                            Text="5. 结果会自动按任务文件夹保存，历史记录可查看版本并重新生图。"
+                            Style="{StaticResource Caption}" />
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </ScrollView>
+    </Grid>
+</ContentPage>

@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage
+    x:Class="Image2Studio.MainPage"
+    xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+    xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+    Shell.NavBarIsVisible="False"
+    Title="Image2 Studio">
+
+    <Grid BackgroundColor="{AppThemeBinding Light={StaticResource PageBg}, Dark={StaticResource PageBgDark}}">
+        <ScrollView>
+            <Grid
+                x:Name="WorkspaceGrid"
+                Padding="22"
+                ColumnDefinitions="*,*,*"
+                ColumnSpacing="16"
+                RowDefinitions="Auto">
+
+                <VerticalStackLayout
+                    x:Name="EditorColumn"
+                    Grid.Column="0"
+                    Spacing="10">
+
+                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12">
+                        <VerticalStackLayout Spacing="5">
+                            <Label Text="Image2 Studio" Style="{StaticResource TitleText}" />
+                            <Label
+                                x:Name="SettingsSummaryLabel"
+                                Text="读取设置中..."
+                                Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                        <ImageButton
+                            x:Name="SettingsButton"
+                            Grid.Column="1"
+                            Source="settings_gear.png"
+                            SemanticProperties.Description="设置"
+                            WidthRequest="42"
+                            HeightRequest="42"
+                            Padding="9"
+                            MinimumWidthRequest="42"
+                            MinimumHeightRequest="42"
+                            CornerRadius="21"
+                            BackgroundColor="#01FFFFFF"
+                            Pressed="OnButtonPressed"
+                            Released="OnButtonReleased"
+                            Clicked="OnOpenSettingsClicked" />
+                    </Grid>
+
+                    <Border Padding="14" BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}">
+                        <VerticalStackLayout Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                                <VerticalStackLayout Spacing="3">
+                                    <Label Text="主页" Style="{StaticResource SectionTitle}" />
+                                    <Label
+                                        x:Name="QueueSummaryLabel"
+                                        Text="队列 0 / 运行 0 / 历史 0"
+                                        Style="{StaticResource Caption}" />
+                                </VerticalStackLayout>
+                                <Border
+                                    Grid.Column="1"
+                                    Padding="9,6"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource ChipBg}, Dark={StaticResource ChipBgDark}}"
+                                    StrokeThickness="0"
+                                    VerticalOptions="Start">
+                                    <Label
+                                        x:Name="PlatformBadgeLabel"
+                                        Text="Windows"
+                                        FontFamily="OpenSansSemibold"
+                                        FontSize="12"
+                                        TextColor="{AppThemeBinding Light={StaticResource ChipText}, Dark={StaticResource ChipTextDark}}" />
+                                </Border>
+                            </Grid>
+                            <Label
+                                x:Name="StatusLabel"
+                                Text="准备就绪"
+                                Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Button
+                        Text="创建任务"
+                        FontSize="17"
+                        MinimumHeightRequest="54"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}"
+                        TextColor="{AppThemeBinding Light={StaticResource Primary}, Dark={StaticResource TextStrongDark}}"
+                        Pressed="OnButtonPressed"
+                        Released="OnButtonReleased"
+                        Clicked="OnOpenCreateTaskClicked" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+                        <Button
+                            Text="运行队列"
+                            FontSize="15"
+                            MinimumHeightRequest="46"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                            TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                            Pressed="OnButtonPressed"
+                            Released="OnButtonReleased"
+                            Clicked="OnStartQueueClicked" />
+                        <Button
+                            Grid.Column="1"
+                            Text="暂停队列"
+                            FontSize="15"
+                            MinimumHeightRequest="46"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource PanelRaised}, Dark={StaticResource PanelRaisedDark}}"
+                            TextColor="{AppThemeBinding Light={StaticResource TextMuted}, Dark={StaticResource TextMutedDark}}"
+                            Pressed="OnButtonPressed"
+                            Released="OnButtonReleased"
+                            Clicked="OnStopQueueClicked" />
+                    </Grid>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    x:Name="QueueColumn"
+                    Grid.Column="1"
+                    Spacing="10">
+
+                    <Border Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="队列" Style="{StaticResource SectionTitle}" />
+                            <Label
+                                x:Name="ConnectionSummaryLabel"
+                                Text="接口：默认接口"
+                                Style="{StaticResource Caption}" />
+                            <Button
+                                Text="查看队列详情"
+                                MinimumHeightRequest="48"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnOpenQueueDetailsClicked" />
+                            <VerticalStackLayout
+                                x:Name="QueueListStack"
+                                Spacing="8">
+                                <Label Text="队列为空" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Label Text="历史" Style="{StaticResource SectionTitle}" />
+                            <Button
+                                Text="查看历史记录"
+                                MinimumHeightRequest="48"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                Pressed="OnButtonPressed"
+                                Released="OnButtonReleased"
+                                Clicked="OnOpenHistoryDetailsClicked" />
+                            <VerticalStackLayout
+                                x:Name="HistoryListStack"
+                                Spacing="8">
+                                <Label Text="暂无历史" Style="{StaticResource Caption}" />
+                            </VerticalStackLayout>
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <VerticalStackLayout
+                    x:Name="ResultColumn"
+                    Grid.Column="2"
+                    Spacing="10">
+
+                    <Border x:Name="PreviewCard" Padding="14">
+                        <VerticalStackLayout Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="8">
+                                <VerticalStackLayout Spacing="4">
+                                    <Label Text="最近状态" Style="{StaticResource SectionTitle}" />
+                                    <Label
+                                        x:Name="EndpointLabel"
+                                        Text="尚未请求"
+                                        Style="{StaticResource Caption}" />
+                                </VerticalStackLayout>
+                                <Button
+                                    x:Name="CopyUrlButton"
+                                    Grid.Column="1"
+                                    Text="复制"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                    Pressed="OnButtonPressed"
+                                    Released="OnButtonReleased"
+                                    Clicked="OnCopyUrlClicked" />
+                                <Button
+                                    x:Name="OpenFolderButton"
+                                    Grid.Column="2"
+                                    Text="文件夹"
+                                    BackgroundColor="{AppThemeBinding Light={StaticResource ControlBg}, Dark={StaticResource ControlBgDark}}"
+                                    TextColor="{AppThemeBinding Light={StaticResource TextStrong}, Dark={StaticResource TextStrongDark}}"
+                                    Pressed="OnButtonPressed"
+                                    Released="OnButtonReleased"
+                                    Clicked="OnOpenOutputFolderClicked" />
+                            </Grid>
+
+                            <Border
+                                x:Name="PreviewSurface"
+                                Padding="12"
+                                MinimumHeightRequest="112"
+                                BackgroundColor="{AppThemeBinding Light={StaticResource PanelAlt}, Dark={StaticResource PanelAltDark}}"
+                                StrokeThickness="0">
+                                <Grid RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                                    <Image
+                                        x:Name="ResultImage"
+                                        IsVisible="False"
+                                        Aspect="AspectFit"
+                                        BackgroundColor="{AppThemeBinding Light={StaticResource PreviewBg}, Dark={StaticResource PreviewBgDark}}" />
+                                    <VerticalStackLayout
+                                        x:Name="EmptyPreview"
+                                        Spacing="5">
+                                        <Label
+                                            x:Name="LastResultStatusLabel"
+                                            Text="等待结果"
+                                            FontFamily="OpenSansSemibold"
+                                            FontSize="16"
+                                            TextColor="{AppThemeBinding Light={StaticResource TextMuted}, Dark={StaticResource TextMutedDark}}" />
+                                        <Label
+                                            x:Name="LastResultMetaLabel"
+                                            Text="生成完成后会在这里标记成功或失败。"
+                                            Style="{StaticResource Caption}" />
+                                    </VerticalStackLayout>
+                                    <Label
+                                        x:Name="ImageUrlLabel"
+                                        Grid.Row="1"
+                                        Style="{StaticResource Caption}"
+                                        LineBreakMode="TailTruncation" />
+                                    <Label
+                                        Grid.Row="2"
+                                        Text="大图、提示词、参考图、模型文本和 JSON 在详情页查看。"
+                                        Style="{StaticResource Caption}" />
+                                </Grid>
+                            </Border>
+                        </VerticalStackLayout>
+                    </Border>
+
+                    <Border Padding="14">
+                        <VerticalStackLayout
+                            x:Name="HomeDetailStack"
+                            Spacing="10">
+                            <Label Text="任务详情" Style="{StaticResource SectionTitle}" />
+                            <Label
+                                Text="选择队列任务后在这里查看摘要。"
+                                Style="{StaticResource Caption}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </VerticalStackLayout>
+
+                <Grid IsVisible="False">
+                    <Button x:Name="ModeChatButton" Text="稳定生成" Clicked="OnModeChatClicked" />
+                    <Button x:Name="ModeEditButton" Text="参考改图" Clicked="OnModeEditClicked" />
+                    <Button x:Name="ModeGenerateButton" Text="直连生成" Clicked="OnModeGenerateClicked" />
+                    <Entry x:Name="TaskTitleEntry" TextChanged="OnCurrentTaskChanged" />
+                    <Picker x:Name="AssignmentModePicker" SelectedIndexChanged="OnAssignmentModeChanged">
+                        <Picker.Items>
+                            <x:String>自动分配</x:String>
+                            <x:String>手动指定</x:String>
+                        </Picker.Items>
+                    </Picker>
+                    <Picker x:Name="ConnectionPicker" SelectedIndexChanged="OnCurrentTaskChanged" />
+                    <Editor x:Name="PromptEditor" TextChanged="OnPromptChanged" />
+                    <Picker x:Name="SizePicker" SelectedIndexChanged="OnQuickSettingChanged">
+                        <Picker.Items>
+                            <x:String>1024x1024</x:String>
+                            <x:String>1536x1024</x:String>
+                            <x:String>1024x1536</x:String>
+                            <x:String>2048x2048</x:String>
+                            <x:String>2048x1152</x:String>
+                            <x:String>3840x2160</x:String>
+                            <x:String>2160x3840</x:String>
+                            <x:String>auto</x:String>
+                        </Picker.Items>
+                    </Picker>
+                    <Picker x:Name="QualityPicker" SelectedIndexChanged="OnQuickSettingChanged">
+                        <Picker.Items>
+                            <x:String>auto</x:String>
+                            <x:String>low</x:String>
+                            <x:String>medium</x:String>
+                            <x:String>high</x:String>
+                        </Picker.Items>
+                    </Picker>
+                    <Border x:Name="ReferencePanel">
+                        <VerticalStackLayout>
+                            <Label x:Name="ReferenceCountLabel" Text="未添加" />
+                            <Button x:Name="PickReferenceButton" Text="添加" Clicked="OnPickReferenceClicked" />
+                            <Button x:Name="ClearReferenceButton" Text="全部" Clicked="OnClearReferenceClicked" />
+                            <VerticalStackLayout x:Name="ReferenceListStack">
+                                <Label x:Name="ReferenceEmptyLabel" Text="未添加" />
+                            </VerticalStackLayout>
+                            <Editor x:Name="ReferenceUrlEditor" TextChanged="OnReferenceUrlsChanged" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Button x:Name="AddQueueButton" Text="加入队列" Clicked="OnAddQueueClicked" />
+                    <Button x:Name="UpdateQueueButton" Text="更新任务" Clicked="OnUpdateSelectedTaskClicked" />
+                    <ActivityIndicator x:Name="BusyIndicator" />
+                    <Border x:Name="AssistantCard">
+                        <Editor x:Name="AssistantTextEditor" />
+                    </Border>
+                    <Border x:Name="RawJsonCard">
+                        <Editor x:Name="RawJsonEditor" />
+                    </Border>
+                </Grid>
+            </Grid>
+        </ScrollView>
+    </Grid>
+</ContentPage>
