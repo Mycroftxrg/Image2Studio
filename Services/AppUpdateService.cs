@@ -21,10 +21,22 @@ public sealed class AppUpdateService
         _httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Image2Studio", CurrentVersionText));
     }
 
-    public static string CurrentVersionText =>
-        AppInfo.Current.VersionString
-        ?? Assembly.GetExecutingAssembly().GetName().Version?.ToString(3)
-        ?? "1.0";
+    public static string CurrentVersionText
+    {
+        get
+        {
+            var assemblyVersion = Assembly.GetExecutingAssembly().GetName().Version;
+            if (assemblyVersion is not null &&
+                (assemblyVersion.Major != 1 || assemblyVersion.Minor != 0 || assemblyVersion.Build != 0))
+            {
+                return assemblyVersion.ToString(3);
+            }
+
+            return AppInfo.Current.VersionString
+                ?? assemblyVersion?.ToString(3)
+                ?? "1.0";
+        }
+    }
 
     public async Task<UpdateCheckResult> CheckAsync(Image2Settings settings, CancellationToken cancellationToken = default)
     {
