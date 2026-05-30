@@ -1,7 +1,8 @@
 {
-  "version": "1.1",
-  "tag": "v1.1",
-  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.1/Image2StudioSetup-1.1-win-x64.exe",
-  "sha256": "0CA6AEF92336F61B2C1D5C461ED3C9A9EB0AE3BCF014404049A86309103D065F",
-  "notes": "Fix Windows local reference image loading for queued and edited image-generation tasks."
+  "version": "1.2",
+  "tag": "v1.2",
+  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.2/Image2StudioSetup-1.2-win-x64.exe",
+  "sha256": "C853C83BF915BC03EB159AC45BD5DE0B772E81651616F937820E9979B462A586",
+  "notes": "自动更新会关闭软件并覆盖安装；安装完成后清理缓存安装包；支持拖拽添加参考图；基于上一版本重新生图时可选择引用上一版本结果图；检查更新会显示完整中文更新日志。",
+  "changelogUrl": "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/CHANGELOG.md"
 }

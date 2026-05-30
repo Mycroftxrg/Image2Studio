@@ -185,7 +185,8 @@ public partial class SettingsPage : ContentPage
             }
 
             UpdateStatusLabel.Text = $"发现新版本 {update.LatestVersion}";
-            var notes = string.IsNullOrWhiteSpace(update.Notes) ? string.Empty : $"{Environment.NewLine}{Environment.NewLine}{update.Notes}";
+            var updateNotes = await _updateService.GetUpdateNotesAsync(update);
+            var notes = string.IsNullOrWhiteSpace(updateNotes) ? string.Empty : $"{Environment.NewLine}{Environment.NewLine}{updateNotes}";
             var confirmed = await DisplayAlertAsync(
                 "发现新版本",
                 $"当前版本：{update.CurrentVersion}{Environment.NewLine}最新版本：{update.LatestVersion}{notes}",
@@ -202,8 +203,8 @@ public partial class SettingsPage : ContentPage
                 UpdateStatusLabel.Text = $"正在下载更新 {Math.Clamp(value, 0, 1):P0}";
             });
             var installerPath = await _updateService.DownloadInstallerAsync(update, progress);
-            UpdateStatusLabel.Text = "更新已下载，正在启动安装程序...";
-            _updateService.LaunchInstaller(installerPath);
+            UpdateStatusLabel.Text = "更新已下载，正在关闭应用并安装...";
+            _updateService.LaunchInstallerAndQuit(installerPath);
         }
         catch (Exception ex)
         {

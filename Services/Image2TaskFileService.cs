@@ -20,7 +20,7 @@ public sealed class Image2TaskFileService
         var safeFileName = SanitizeFileName(string.IsNullOrWhiteSpace(file.FileName) ? "reference.png" : file.FileName);
         var path = GetUniquePath(folder, safeFileName);
 
-        await using var input = await file.OpenReadAsync();
+        await using var input = await OpenFileResultReadStreamAsync(file);
         await using var output = File.Create(path);
         await input.CopyToAsync(output);
 
@@ -187,6 +187,21 @@ public sealed class Image2TaskFileService
             })
             .Cast<FileResult>()
             .ToArray();
+    }
+
+    private static Task<Stream> OpenFileResultReadStreamAsync(FileResult file)
+    {
+        if (!string.IsNullOrWhiteSpace(file.FullPath) &&
+            File.Exists(file.FullPath))
+        {
+            return Task.FromResult<Stream>(File.Open(
+                file.FullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read));
+        }
+
+        return file.OpenReadAsync();
     }
 
     private static string GetTaskDraftReferenceFolder(string taskId)

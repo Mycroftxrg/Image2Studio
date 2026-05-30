@@ -56,7 +56,27 @@ public sealed class AppUpdateService
             LatestVersion: manifest.Version.Trim().TrimStart('v', 'V'),
             DownloadUrl: manifest.Url.Trim(),
             Sha256: manifest.Sha256?.Trim() ?? string.Empty,
-            Notes: manifest.Notes?.Trim() ?? string.Empty);
+            Notes: manifest.Notes?.Trim() ?? string.Empty,
+            ChangelogUrl: manifest.ChangelogUrl?.Trim() ?? string.Empty);
+    }
+
+    public async Task<string> GetUpdateNotesAsync(UpdateCheckResult update, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(update.ChangelogUrl) ||
+            !Uri.TryCreate(update.ChangelogUrl, UriKind.Absolute, out var uri))
+        {
+            return update.Notes;
+        }
+
+        try
+        {
+            var changelog = await _httpClient.GetStringAsync(uri, cancellationToken);
+            return string.IsNullOrWhiteSpace(changelog) ? update.Notes : changelog.Trim();
+        }
+        catch
+        {
+            return update.Notes;
+        }
     }
 
     public async Task<string> DownloadInstallerAsync(UpdateCheckResult update, IProgress<double>? progress = null, CancellationToken cancellationToken = default)
@@ -119,17 +139,76 @@ public sealed class AppUpdateService
         return targetPath;
     }
 
-    public void LaunchInstaller(string installerPath)
+    public Process LaunchInstaller(string installerPath, bool silent = false)
     {
         if (!File.Exists(installerPath))
         {
             throw new FileNotFoundException("更新安装包不存在。", installerPath);
         }
 
-        Process.Start(new ProcessStartInfo
+        var startInfo = new ProcessStartInfo
         {
             FileName = installerPath,
-            UseShellExecute = true
+            UseShellExecute = true,
+            WorkingDirectory = Path.GetDirectoryName(installerPath) ?? FileSystem.Current.CacheDirectory
+        };
+
+        if (silent)
+        {
+            startInfo.Arguments = "/SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS /NORESTART";
+        }
+
+        var process = Process.Start(startInfo);
+        if (process is null)
+        {
+            throw new InvalidOperationException("未能启动更新安装程序。");
+        }
+
+        return process;
+    }
+
+    public void LaunchInstallerAndQuit(string installerPath)
+    {
+        var installerProcess = LaunchInstaller(installerPath, silent: true);
+        ScheduleInstallerCleanup(installerPath, installerProcess.Id);
+        Microsoft.Maui.Controls.Application.Current?.Quit();
+    }
+
+    private static void ScheduleInstallerCleanup(string installerPath, int installerProcessId)
+    {
+        var cleanupPath = Path.Combine(
+            Path.GetDirectoryName(installerPath) ?? FileSystem.Current.CacheDirectory,
+            $"cleanup-update-{DateTime.Now:yyyyMMddHHmmss}.cmd");
+        var escapedInstallerPath = installerPath.Replace("\"", "\"\"");
+        var script = string.Join(Environment.NewLine, new[]
+        {
+            "@echo off",
+            "setlocal",
+            $"set \"installer={escapedInstallerPath}\"",
+            $"set \"pid={installerProcessId}\"",
+            "if \"%pid%\"==\"\" goto delete_installer",
+            ":wait_process",
+            "tasklist /FI \"PID eq %pid%\" | find \"%pid%\" >nul 2>nul",
+            "if errorlevel 1 goto delete_installer",
+            "timeout /t 2 /nobreak >nul",
+            "goto wait_process",
+            ":delete_installer",
+            "for /L %%i in (1,1,90) do (",
+            "  del /F /Q \"%installer%\" >nul 2>nul",
+            "  if not exist \"%installer%\" goto done",
+            "  timeout /t 2 /nobreak >nul",
+            ")",
+            ":done",
+            "del /F /Q \"%~f0\" >nul 2>nul"
+        });
+
+        File.WriteAllText(cleanupPath, script);
+        Process.Start(new ProcessStartInfo
+        {
+            FileName = cleanupPath,
+            UseShellExecute = true,
+            WindowStyle = ProcessWindowStyle.Hidden,
+            WorkingDirectory = Path.GetDirectoryName(cleanupPath) ?? FileSystem.Current.CacheDirectory
         });
     }
 
@@ -175,7 +254,8 @@ public sealed class AppUpdateService
         string Version,
         string Url,
         string? Sha256,
-        string? Notes);
+        string? Notes,
+        string? ChangelogUrl);
 }
 
 public sealed record UpdateCheckResult(
@@ -184,4 +264,5 @@ public sealed record UpdateCheckResult(
     string LatestVersion,
     string DownloadUrl,
     string Sha256,
-    string Notes);
+    string Notes,
+    string ChangelogUrl);

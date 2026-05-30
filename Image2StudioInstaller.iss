@@ -1,5 +1,5 @@
 #define MyAppName "Image2 Studio"
-#define MyAppVersion "1.1"
+#define MyAppVersion "1.2"
 #define MyAppPublisher "Image2Studio"
 #define MyAppExeName "Image2Studio.exe"
 #define SourceDir "C:\Users\ASUS\Desktop\Image2Studio\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"
@@ -38,4 +38,11 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingD
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; IconFilename: "{app}\appicon.ico"; Tasks: desktopicon
 
 [Run]
+Filename: "{sys}\cmd.exe"; Parameters: "/C start """" /MIN cmd /C ""timeout /t 8 /nobreak >nul & del /F /Q """"{srcexe}"""""""; Flags: runhidden; Check: IsAutoUpdateSource
 Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function IsAutoUpdateSource: Boolean;
+begin
+  Result := Pos('\updates\', Lowercase(ExpandConstant('{srcexe}'))) > 0;
+end;

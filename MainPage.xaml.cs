@@ -1,6 +1,9 @@
 using Image2Studio.Services;
 using Microsoft.Maui.Controls.Shapes;
 using Microsoft.Maui.Layouts;
+#if WINDOWS
+using Windows.Storage;
+#endif
 
 namespace Image2Studio;
 
@@ -386,16 +389,115 @@ public partial class MainPage : ContentPage
                 return;
             }
 
-            var items = await Task.WhenAll(selected.Select(file => CreateReferenceImageItemAsync(file, null)));
-            _referenceImages.AddRange(items);
-            UpdateReferenceSummary();
-            SetMode(WorkMode.Edit);
-            SetStatus($"已添加 {selected.Length} 张参考图");
+            await AddReferenceFilesAsync(selected, "已添加 {0} 张参考图");
         }
         catch (Exception ex)
         {
             await DisplayAlertAsync("选择失败", ex.Message, "知道了");
         }
+    }
+
+    private void OnReferenceDragOver(object? sender, DragEventArgs e)
+    {
+        e.AcceptedOperation = Microsoft.Maui.Controls.DataPackageOperation.Copy;
+    }
+
+    private async void OnReferenceDropped(object? sender, DropEventArgs e)
+    {
+        e.Handled = true;
+
+        try
+        {
+            var files = await GetDroppedReferenceFilesAsync(e);
+            if (files.Length == 0)
+            {
+                SetStatus("没有识别到可用的图片文件");
+                return;
+            }
+
+            await AddReferenceFilesAsync(files, "已拖入 {0} 张参考图");
+        }
+        catch (Exception ex)
+        {
+            await DisplayAlertAsync("拖入失败", ex.Message, "知道了");
+        }
+    }
+
+    private async Task AddReferenceFilesAsync(IReadOnlyList<FileResult> files, string statusFormat)
+    {
+        var imageFiles = files
+            .Where(file => IsSupportedReferenceImage(file.FileName) || IsSupportedReferenceImage(file.FullPath))
+            .ToArray();
+        if (imageFiles.Length == 0)
+        {
+            SetStatus("请选择图片格式的参考图");
+            return;
+        }
+
+        var items = await Task.WhenAll(imageFiles.Select(file => CreateReferenceImageItemAsync(file, null)));
+        _referenceImages.AddRange(items);
+        UpdateReferenceSummary();
+        SetMode(WorkMode.Edit);
+        SetStatus(string.Format(statusFormat, imageFiles.Length));
+    }
+
+    private static bool IsSupportedReferenceImage(string? pathOrName)
+    {
+        var extension = System.IO.Path.GetExtension(pathOrName ?? string.Empty).ToLowerInvariant();
+        return extension is ".png" or ".jpg" or ".jpeg" or ".webp" or ".bmp" or ".gif";
+    }
+
+    private static async Task<FileResult[]> GetDroppedReferenceFilesAsync(DropEventArgs e)
+    {
+#if WINDOWS
+        var dragEventArgs = e.PlatformArgs?.DragEventArgs;
+        var dataView = dragEventArgs?.DataView;
+        if (dataView is null ||
+            !dataView.Contains(Windows.ApplicationModel.DataTransfer.StandardDataFormats.StorageItems))
+        {
+            return Array.Empty<FileResult>();
+        }
+
+        var items = await dataView.GetStorageItemsAsync();
+        return items
+            .OfType<StorageFile>()
+            .Where(file => !string.IsNullOrWhiteSpace(file.Path) && File.Exists(file.Path))
+            .Select(file => new FileResult(file.Path) { FileName = file.Name })
+            .ToArray();
+#else
+        await Task.CompletedTask;
+        return Array.Empty<FileResult>();
+#endif
+    }
+
+    private View CreateDropReferencePanel(View content, Func<FileResult[], Task> onFilesDropped)
+    {
+        var dropGesture = new DropGestureRecognizer { AllowDrop = true };
+        dropGesture.DragOver += (_, e) =>
+        {
+            e.AcceptedOperation = Microsoft.Maui.Controls.DataPackageOperation.Copy;
+        };
+        dropGesture.Drop += async (_, e) =>
+        {
+            e.Handled = true;
+            try
+            {
+                var files = await GetDroppedReferenceFilesAsync(e);
+                if (files.Length == 0)
+                {
+                    await DisplayAlertAsync("拖入失败", "没有识别到可用的图片文件。", "知道了");
+                    return;
+                }
+
+                await onFilesDropped(files);
+            }
+            catch (Exception ex)
+            {
+                await DisplayAlertAsync("拖入失败", ex.Message, "知道了");
+            }
+        };
+        content.GestureRecognizers.Add(dropGesture);
+        return content;
     }
 
     private static async Task<ReferenceImageItem> CreateReferenceImageItemAsync(FileResult file, Image2ReferenceAsset? asset)
@@ -1243,7 +1345,7 @@ public partial class MainPage : ContentPage
             return;
         }
 
-        await Navigation.PushAsync(CreateTaskEditorPage(CreateRerunDraftFromHistory(history), addAsNewTask: true));
+        await Navigation.PushAsync(CreateTaskEditorPage(CreateRerunDraftFromHistory(history), addAsNewTask: true, rerunSource: history));
     }
 
     private async void OnHistoryDeleteClicked(object? sender, EventArgs e)
@@ -1337,6 +1439,17 @@ public partial class MainPage : ContentPage
             CreatedAt = DateTime.Now,
             UpdatedAt = DateTime.Now
         };
+    }
+
+    private static string BuildResultReferenceFileName(Image2HistoryEntry history)
+    {
+        var extension = System.IO.Path.GetExtension(history.ImagePath ?? string.Empty);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            extension = ".png";
+        }
+
+        return $"previous-result-v{history.Version}{extension}";
     }
 
     private async void OnQueueTaskOpenDetailsClicked(object? sender, EventArgs e)
@@ -1693,7 +1806,7 @@ public partial class MainPage : ContentPage
         RefreshOpenDetailPages();
     }
 
-    private ContentPage CreateTaskEditorPage(Image2QueuedTask? task, bool addAsNewTask = false)
+    private ContentPage CreateTaskEditorPage(Image2QueuedTask? task, bool addAsNewTask = false, Image2HistoryEntry? rerunSource = null)
     {
         var isEditing = task is not null && !addAsNewTask;
         var isRerunDraft = task is not null && addAsNewTask;
@@ -1916,6 +2029,40 @@ public partial class MainPage : ContentPage
             }
         };
 
+        var addPreviousResultButton = CreateActionButton("引用上一版本结果图", ResourceColor("ControlBg"), ResourceColor("TextStrong"));
+        addPreviousResultButton.IsVisible = rerunSource is not null;
+        addPreviousResultButton.IsEnabled = rerunSource is not null &&
+            !string.IsNullOrWhiteSpace(rerunSource.ImagePath) &&
+            File.Exists(rerunSource.ImagePath);
+        addPreviousResultButton.Clicked += async (_, _) =>
+        {
+            if (rerunSource is null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(rerunSource.ImagePath) || !File.Exists(rerunSource.ImagePath))
+            {
+                await DisplayAlertAsync("没有本地结果图", "上一版本没有可引用的本地结果图片。", "知道了");
+                return;
+            }
+
+            if (localReferences.Any(item =>
+                    string.Equals(item.File.FullPath, rerunSource.ImagePath, StringComparison.OrdinalIgnoreCase)))
+            {
+                await DisplayAlertAsync("已添加", "上一版本结果图已经在参考图列表中。", "知道了");
+                return;
+            }
+
+            var file = new FileResult(rerunSource.ImagePath)
+            {
+                FileName = BuildResultReferenceFileName(rerunSource)
+            };
+            localReferences.Add(await CreateReferenceImageItemAsync(file, null));
+            modePicker.SelectedIndex = 1;
+            RefreshReferences();
+        };
+
         var clearReferenceButton = CreateActionButton("清空参考图", ResourceColor("ControlBg"), ResourceColor("TextMuted"));
         clearReferenceButton.Clicked += (_, _) =>
         {
@@ -1923,6 +2070,36 @@ public partial class MainPage : ContentPage
             referenceUrlEditor.Text = string.Empty;
             RefreshReferences();
         };
+
+        var editorReferencePanel = CreateDropReferencePanel(
+            new VerticalStackLayout
+            {
+                Spacing = 8,
+                Children =
+                {
+                    referenceSummary,
+                    referenceModeWarning,
+                    CreateTwoColumnRow(pickReferenceButton, clearReferenceButton),
+                    addPreviousResultButton,
+                    referenceList,
+                    CreateLabeledInput("参考图 URL", referenceUrlEditor, "每行一个图片 URL")
+                }
+            },
+            async files =>
+            {
+                var imageFiles = files
+                    .Where(file => IsSupportedReferenceImage(file.FileName) || IsSupportedReferenceImage(file.FullPath))
+                    .ToArray();
+                if (imageFiles.Length == 0)
+                {
+                    await DisplayAlertAsync("拖入失败", "没有识别到可用的图片文件。", "知道了");
+                    return;
+                }
+
+                localReferences.AddRange(await Task.WhenAll(imageFiles.Select(file => CreateReferenceImageItemAsync(file, null))));
+                modePicker.SelectedIndex = 1;
+                RefreshReferences();
+            });
 
         var saveButton = CreateOutlinePrimaryButton(isEditing ? "更新任务" : "加入队列");
         saveButton.Clicked += async (_, _) =>
@@ -2054,14 +2231,7 @@ public partial class MainPage : ContentPage
             CreateLabeledInput("指定接口", connectionPicker),
             CreateCaptionLabel("自动分配会使用当前空闲接口；手动指定会等待对应接口空闲。")
         }));
-        stack.Children.Add(CreateSectionCard("参考图", new View[]
-        {
-            referenceSummary,
-            referenceModeWarning,
-            CreateTwoColumnRow(pickReferenceButton, clearReferenceButton),
-            referenceList,
-            CreateLabeledInput("参考图 URL", referenceUrlEditor, "每行一个图片 URL")
-        }));
+        stack.Children.Add(CreateSectionCard("参考图", new View[] { editorReferencePanel }));
         stack.Children.Add(saveButton);
 
         _ = LoadExistingReferencesAsync().ContinueWith(_ =>

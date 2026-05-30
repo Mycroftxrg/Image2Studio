@@ -1,11 +1,20 @@
-# Changelog
+# 更新日志
+
+## 1.2 - 2026-05-30
+
+- 自动更新下载完成后，会静默启动安装器、关闭当前软件，并让安装器覆盖安装新版本。
+- 自动更新安装完成后，会清理下载到缓存目录的安装包。
+- 新增拖拽添加参考图：可以把本地图片直接拖到参考图区域。
+- “基于此版本重新生图”编辑界面新增“引用上一版本结果图”按钮，可按需把上一版本本地结果图加入参考图。
+- 检查更新弹窗现在会显示完整中文更新日志。
 
 ## 1.1 - 2026-05-30
 
-- Fixed Windows local reference image loading for queued image-generation tasks.
-- Fixed editing existing tasks with local reference images restored from saved paths.
-- Updated Windows installer and auto-update metadata to version 1.1.
+- 修复 Windows 上队列任务读取本地参考图时可能失败的问题。
+- 修复编辑已有任务时，从已保存路径恢复本地参考图可能失败的问题。
+- 更新 Windows 安装器和自动更新元数据到 1.1。
 
 ## 1.0 - 2026-05-30
 
-- Initial Windows installer release with update checking support.
+- 首个 Windows 安装器版本。
+- 支持自动检查更新。

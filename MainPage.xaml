@@ -278,6 +278,12 @@
                         </Picker.Items>
                     </Picker>
                     <Border x:Name="ReferencePanel">
+                        <Border.GestureRecognizers>
+                            <DropGestureRecognizer
+                                AllowDrop="True"
+                                DragOver="OnReferenceDragOver"
+                                Drop="OnReferenceDropped" />
+                        </Border.GestureRecognizers>
                         <VerticalStackLayout>
                             <Label x:Name="ReferenceCountLabel" Text="未添加" />
                             <Button x:Name="PickReferenceButton" Text="添加" Clicked="OnPickReferenceClicked" />

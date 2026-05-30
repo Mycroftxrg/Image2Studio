@@ -43,7 +43,8 @@ public partial class App : Application
                 return;
             }
 
-            var notes = string.IsNullOrWhiteSpace(update.Notes) ? string.Empty : $"{Environment.NewLine}{Environment.NewLine}{update.Notes}";
+            var updateNotes = await updateService.GetUpdateNotesAsync(update);
+            var notes = string.IsNullOrWhiteSpace(updateNotes) ? string.Empty : $"{Environment.NewLine}{Environment.NewLine}{updateNotes}";
             var confirmed = await page.DisplayAlertAsync(
                 "发现新版本",
                 $"当前版本：{update.CurrentVersion}{Environment.NewLine}最新版本：{update.LatestVersion}{notes}",
@@ -55,11 +56,15 @@ public partial class App : Application
             }
 
             var installerPath = await updateService.DownloadInstallerAsync(update);
-            updateService.LaunchInstaller(installerPath);
+            updateService.LaunchInstallerAndQuit(installerPath);
         }
-        catch
+        catch (Exception ex)
         {
-            // Automatic update checks stay quiet; manual checks show detailed errors.
+            var page = sender is Window window ? window.Page : null;
+            if (page is not null)
+            {
+                await page.DisplayAlertAsync("自动更新失败", ex.Message, "知道了");
+            }
         }
     }
 }
