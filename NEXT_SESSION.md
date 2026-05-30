@@ -11,7 +11,7 @@ Hard rules from user:
 
 Current release line:
 - `v1.1` is already on GitHub: commit `83856aa`, installer SHA256 `0CA6AEF92336F61B2C1D5C461ED3C9A9EB0AE3BCF014404049A86309103D065F`.
-- `v1.2` work in this session targets Windows installer update flow, drag/drop reference images, Chinese changelog, and optional previous-result reference inside the existing rerun editor.
+- `v1.2` is on GitHub: commit `6035da0`, tag `v1.2`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.2`.
 
 1.2 changes made on 2026-05-30:
 - Version bumped to `1.2` / app version `3` in `Image2Studio.csproj`; installer version bumped in `Image2StudioInstaller.iss`.
@@ -49,13 +49,11 @@ Verification already done:
 - Inno Setup compile passed.
 - `rg` confirmed no leftover separate reference-rerun symbols: `HistoryReferenceRerunRequest`, `OnHistoryReferenceRerunClicked`, `作参考再生`, `用结果图作参考再生图`, `CreateReferenceRerun`, `CopyReferenceFileAsync`.
 
-Remaining release steps if not already completed:
-1. `git status --short`
-2. Commit 1.2 changes.
-3. Tag `v1.2`.
-4. Push `main` and `v1.2`.
-5. Create GitHub release with installer asset and Chinese notes from `CHANGELOG.md`.
-6. Verify `gh release view v1.2 --repo Mycroftxrg/Image2Studio --json tagName,name,url,assets`.
+Release steps completed:
+- Committed `6035da0 Release 1.2 update workflow improvements`.
+- Tagged `v1.2`.
+- Pushed `main` and `v1.2`.
+- Created GitHub Release `Image2 Studio 1.2` and uploaded `Image2StudioSetup-1.2-win-x64.exe`.
 
 Useful release commands:
 - `git add App.xaml.cs CHANGELOG.md Image2Studio.csproj Image2StudioInstaller.iss MainPage.xaml MainPage.xaml.cs Services\AppUpdateService.cs Services\Image2TaskFileService.cs SettingsPage.xaml.cs latest.json NEXT_SESSION.md`
