@@ -400,7 +400,7 @@ public partial class MainPage : ContentPage
 
     private static async Task<ReferenceImageItem> CreateReferenceImageItemAsync(FileResult file, Image2ReferenceAsset? asset)
     {
-        await using var input = await file.OpenReadAsync();
+        await using var input = await OpenReferenceImageReadStreamAsync(file);
         using var memory = new MemoryStream();
         var buffer = new byte[64 * 1024];
         const long previewByteLimit = 12 * 1024 * 1024;
@@ -412,6 +412,21 @@ public partial class MainPage : ContentPage
         }
 
         return new ReferenceImageItem(file, memory.ToArray(), asset);
+    }
+
+    private static Task<Stream> OpenReferenceImageReadStreamAsync(FileResult file)
+    {
+        if (!string.IsNullOrWhiteSpace(file.FullPath) &&
+            File.Exists(file.FullPath))
+        {
+            return Task.FromResult<Stream>(File.Open(
+                file.FullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read));
+        }
+
+        return file.OpenReadAsync();
     }
 
     private void OnClearReferenceClicked(object? sender, EventArgs e)

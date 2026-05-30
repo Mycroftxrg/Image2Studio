@@ -159,7 +159,7 @@ public sealed partial class Image2ApiClient
         {
             foreach (var referenceImage in options.ReferenceImages)
             {
-                var imageStream = await referenceImage.OpenReadAsync();
+                var imageStream = await OpenReferenceImageReadStreamAsync(referenceImage);
                 imageStreams.Add(imageStream);
                 AddImageContent(
                     form,
@@ -794,7 +794,7 @@ public sealed partial class Image2ApiClient
         FileResult referenceImage,
         CancellationToken cancellationToken)
     {
-        await using var stream = await referenceImage.OpenReadAsync();
+        await using var stream = await OpenReferenceImageReadStreamAsync(referenceImage);
         using var memory = new MemoryStream();
         await stream.CopyToAsync(memory, cancellationToken);
 
@@ -805,6 +805,21 @@ public sealed partial class Image2ApiClient
 
         var contentType = GuessContentType(referenceImage.FileName);
         return $"data:{contentType};base64,{Convert.ToBase64String(memory.ToArray())}";
+    }
+
+    private static Task<Stream> OpenReferenceImageReadStreamAsync(FileResult referenceImage)
+    {
+        if (!string.IsNullOrWhiteSpace(referenceImage.FullPath) &&
+            File.Exists(referenceImage.FullPath))
+        {
+            return Task.FromResult<Stream>(File.Open(
+                referenceImage.FullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read));
+        }
+
+        return referenceImage.OpenReadAsync();
     }
 
     private async Task<(byte[] Bytes, string FileName, string ContentType)> DownloadReferenceImageAsync(
