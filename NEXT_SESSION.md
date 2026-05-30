@@ -8,70 +8,65 @@ Hard rules from user:
 - If sandbox blocks an important command, request escalation directly; do not route around it.
 - Do not spend real image-generation quota unless explicitly allowed.
 - Do not clear phone app data without explicit permission.
+- Changelogs and update UI text should be Chinese.
 
-Current release line:
-- `v1.1` is already on GitHub: commit `83856aa`, installer SHA256 `0CA6AEF92336F61B2C1D5C461ED3C9A9EB0AE3BCF014404049A86309103D065F`.
-- `v1.2` is on GitHub: commit `6035da0`, tag `v1.2`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.2`.
-- `v1.3` is on GitHub: commit `b97c25d`, tag `v1.3`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.3`.
+Current release status:
+- Latest public release is `v1.4`: `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.4`
+- `latest.json` on `main` points to `v1.4` and `Image2StudioSetup-1.4-win-x64.exe`.
+- 1.4 installer: `C:\Users\ASUS\Desktop\Image2Studio\installer\Image2StudioSetup-1.4-win-x64.exe`
+- 1.4 SHA256: `0A61E6BF9F8E78D6C65EB03870DB8955FB2637EA52B33C314DBB5C5995D434C4`
+- GitHub release asset digest verified: `sha256:0a61e6bf9f8e78d6c65eb03870db8955fb2637ea52b33c314dbb5c5995d434c4`
+- Remote release commit is `a771789c58010f451e12869b34e819d5ee89174c`.
 
-1.3 hotfix made on 2026-05-31:
-- User reported that after installing 1.2, the app still opened/showed 1.0.
-- Root cause: Windows unpackaged MAUI could still report `AppInfo.Current.VersionString` as 1.0 even though the 1.2 exe/dll file version was 1.2.
-- Fixed by adding explicit `<Version>`, `<AssemblyVersion>`, `<FileVersion>`, `<InformationalVersion>` in `Image2Studio.csproj`, updating `Platforms\Windows\app.manifest` to `1.3.0.0`, and making `AppUpdateService.CurrentVersionText` prefer a non-default assembly version before `AppInfo`.
-- 1.3 installer: `C:\Users\ASUS\Desktop\Image2Studio\installer\Image2StudioSetup-1.3-win-x64.exe`
-- 1.3 SHA256: `0C14D680DC5B090938ED40BEB644F6A054C8E945E274DFEF7B6F7F2582C95F17`
-- 1.3 release asset verified with GitHub CLI digest `sha256:0c14d680dc5b090938ed40beb644f6a054c8e945e274dfef7b6f7f2582c95f17`.
+1.4 work completed on 2026-05-31:
+- Version bumped to `1.4` in `Image2Studio.csproj`; `ApplicationVersion` is `5`.
+- Windows manifest bumped to `1.4.0.0`; Inno Setup `MyAppVersion` bumped to `1.4`.
+- Auto-update no longer launches the installer silently and no longer quits the app itself. It opens the visible installer UI and lets Inno Setup handle closing the running app and overwriting files.
+- Downloaded update installers are still scheduled for deletion after installer exit.
+- Added `UpdatePromptPage.cs`, a modal update prompt that renders simple Markdown headings, bullets, and body text.
+- `App.xaml.cs` and `SettingsPage.xaml.cs` now use `UpdatePromptPage.ShowAsync(...)` and call `LaunchInstallerForUpdate(...)`.
+- Startup auto-check now checks when `AutoCheckUpdates` is enabled instead of being blocked by the previous 12-hour timestamp. It still only prompts when a newer version exists.
+- `AppUpdateService.GetUpdateNotesAsync(...)` now fetches `CHANGELOG.md` but extracts only the target latest version's section, not the full history.
+- `CHANGELOG.md`, `latest.json`, and `release-notes-v1.4.md` are Chinese and only describe the new 1.4 changes for release/update display.
 
-1.2 changes made on 2026-05-30:
-- Version bumped to `1.2` / app version `3` in `Image2Studio.csproj`; installer version bumped in `Image2StudioInstaller.iss`.
-- Fixed updater workflow: after download, app launches installer with `/SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS /NORESTART`, schedules downloaded installer cleanup, then quits the app.
-- Installer also attempts to delete its own downloaded `{srcexe}` when launched from an `updates` cache path.
-- Update manifest now supports `changelogUrl`; update dialogs fetch and show the full Chinese `CHANGELOG.md`.
-- `CHANGELOG.md` converted to Chinese and includes 1.2, 1.1, 1.0 entries.
-- Added drag/drop local images into the home reference panel and the task editor reference section.
-- Added `引用上一版本结果图` button inside the existing `基于此版本重新生图` editor page only. It optionally adds the selected history version's local result image as a reference and switches to reference edit mode. No separate rerun mode or extra history shortcut should exist.
-- Reference image file reads now prefer `FileResult.FullPath` before MAUI `OpenReadAsync`, preventing Windows `windowsRuntimeFile` null failures for saved/dragged/local result references.
+Why 1.4 was needed:
+- User reported that after auto-update downloaded an installer, there was no visible action. The silent installer path was confusing and not reliable enough.
+- User wanted the app to open the installer UI; installer itself supports closing the app and updating.
+- User also reported startup automatic update checks were not popping. The old local auto-check timestamp could suppress prompts after an early failed or hidden check.
+- User wanted Markdown changelog rendering and only the new version's changelog in the update dialog.
 
-Important files changed for 1.2:
-- `Services\Image2ApiClient.cs`: earlier 1.1 fix for local reference reads.
-- `Services\Image2TaskFileService.cs`: copy references via local path when available.
-- `Services\AppUpdateService.cs`: changelog fetch, silent installer launch, quit, cleanup script.
-- `App.xaml.cs`, `SettingsPage.xaml.cs`: show changelog and call `LaunchInstallerAndQuit`.
-- `MainPage.xaml`, `MainPage.xaml.cs`: drag/drop and rerun editor optional previous-result reference button.
-- `CHANGELOG.md`, `latest.json`, `Image2StudioInstaller.iss`, `Image2Studio.csproj`.
+1.4 verification done:
+- `dotnet build Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -p:TargetFrameworks=net10.0-windows10.0.19041.0` passed with 0 warnings and 0 errors.
+- `dotnet publish Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -r win-x64 -p:TargetFrameworks=net10.0-windows10.0.19041.0` passed.
+- Published EXE/DLL file version verified as `1.4.0.0`; product version showed `1.4+...`.
+- Inno Setup compile passed and produced `Image2StudioSetup-1.4-win-x64.exe`.
+- `rg` confirmed no leftover `LaunchInstallerAndQuit`, `/SILENT`, or `SUPPRESSMSGBOXES` references.
+- GitHub Release `v1.4` and remote `latest.json` were verified with GitHub CLI/API.
 
-1.2 build artifacts after final rebuild:
-- Windows publish command:
-  `dotnet publish Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -r win-x64 -p:TargetFrameworks=net10.0-windows10.0.19041.0`
-- Installer compile command:
-  `& 'C:\Users\ASUS\AppData\Local\Programs\Inno Setup 6\ISCC.exe' 'C:\Users\ASUS\Desktop\Image2Studio\Image2StudioInstaller.iss'`
-- Final installer:
-  `C:\Users\ASUS\Desktop\Image2Studio\installer\Image2StudioSetup-1.2-win-x64.exe`
-- Final installer SHA256:
-  `C853C83BF915BC03EB159AC45BD5DE0B772E81651616F937820E9979B462A586`
-- `latest.json` should point to:
-  `https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.2/Image2StudioSetup-1.2-win-x64.exe`
+Git note from 1.4 release:
+- Normal `git push` repeatedly failed with GitHub port 443 connection reset/timeouts, even after escalation.
+- GitHub CLI API access worked, so the 1.4 files were committed to remote `main` via GitHub API and `refs/tags/v1.4` was created there.
+- Local branch had an equivalent local 1.4 commit `02c20b1`; remote has API commit `a771789`. Differences were only line endings for `Image2Studio.csproj` and `Platforms/Windows/app.manifest`.
+- Local branch was merged with `origin/main` using `git merge -s ours origin/main -m "Merge remote 1.4 API release"` before this document update, so future pushes can fast-forward from the remote release history.
+- Remote `v1.4` tag points to `a771789`. Do not force-push or replace it unless the user explicitly asks.
 
-Verification already done:
-- `dotnet build Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -p:TargetFrameworks=net10.0-windows10.0.19041.0` passed.
-- `dotnet publish ... win-x64 ...` passed.
-- Inno Setup compile passed.
-- `rg` confirmed no leftover separate reference-rerun symbols: `HistoryReferenceRerunRequest`, `OnHistoryReferenceRerunClicked`, `作参考再生`, `用结果图作参考再生图`, `CreateReferenceRerun`, `CopyReferenceFileAsync`.
+Earlier release line:
+- `v1.1`: commit `83856aa`, installer SHA256 `0CA6AEF92336F61B2C1D5C461ED3C9A9EB0AE3BCF014404049A86309103D065F`.
+- `v1.2`: commit `6035da0`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.2`.
+- `v1.3`: commit `b97c25d`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.3`.
 
-Release steps completed:
-- Committed `6035da0 Release 1.2 update workflow improvements`.
-- Tagged `v1.2`.
-- Pushed `main` and `v1.2`.
-- Created GitHub Release `Image2 Studio 1.2` and uploaded `Image2StudioSetup-1.2-win-x64.exe`.
+Important prior fixes:
+- 1.1 fixed Windows local reference image reads by preferring `FileResult.FullPath` before MAUI `OpenReadAsync`, preventing `windowsRuntimeFile` null failures.
+- 1.2 added automatic installer cleanup, drag/drop reference images, and the optional `引用上一版本结果图` button inside the existing `基于此版本重新生图` editor page.
+- 1.3 fixed Windows installed app still reporting/showing 1.0 by adding explicit assembly/file/informational versions and making `AppUpdateService.CurrentVersionText` prefer assembly version over `AppInfo`.
 
 Useful release commands:
-- `git add App.xaml.cs CHANGELOG.md Image2Studio.csproj Image2StudioInstaller.iss MainPage.xaml MainPage.xaml.cs Services\AppUpdateService.cs Services\Image2TaskFileService.cs SettingsPage.xaml.cs latest.json NEXT_SESSION.md`
-- `git commit -m "Release 1.2 update workflow improvements"`
-- `git tag -a v1.2 -m "Image2 Studio 1.2"`
-- `git push origin main`
-- `git push origin v1.2`
-- `& 'C:\Program Files\GitHub CLI\gh.exe' release create v1.2 'C:\Users\ASUS\Desktop\Image2Studio\installer\Image2StudioSetup-1.2-win-x64.exe' --repo Mycroftxrg/Image2Studio --title 'Image2 Studio 1.2' --notes-file <temp-notes-file>`
+- Build: `dotnet build Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -p:TargetFrameworks=net10.0-windows10.0.19041.0`
+- Publish: `dotnet publish Image2Studio.csproj -f net10.0-windows10.0.19041.0 -c Release -r win-x64 -p:TargetFrameworks=net10.0-windows10.0.19041.0`
+- Installer: `& 'C:\Users\ASUS\AppData\Local\Programs\Inno Setup 6\ISCC.exe' 'C:\Users\ASUS\Desktop\Image2Studio\Image2StudioInstaller.iss'`
+- Hash: `Get-FileHash -Algorithm SHA256 -LiteralPath <installer>`
+- Release: `& 'C:\Program Files\GitHub CLI\gh.exe' release create vX.Y '<installer>' --repo Mycroftxrg/Image2Studio --title 'Image2 Studio X.Y' --notes-file '<notes-file>'`
 
-Older Android context kept for continuity:
+Older Android context:
 - Previous Android work added manual folder/image save fallbacks and all-files permission flow.
 - Android Release artifact from 2026-05-25: `bin\Release\net10.0-android\android-arm64\publish\com.apinebula.image2studio-Signed.apk`.
