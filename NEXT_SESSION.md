@@ -12,6 +12,15 @@ Hard rules from user:
 Current release line:
 - `v1.1` is already on GitHub: commit `83856aa`, installer SHA256 `0CA6AEF92336F61B2C1D5C461ED3C9A9EB0AE3BCF014404049A86309103D065F`.
 - `v1.2` is on GitHub: commit `6035da0`, tag `v1.2`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.2`.
+- `v1.3` is on GitHub: commit `b97c25d`, tag `v1.3`, release URL `https://github.com/Mycroftxrg/Image2Studio/releases/tag/v1.3`.
+
+1.3 hotfix made on 2026-05-31:
+- User reported that after installing 1.2, the app still opened/showed 1.0.
+- Root cause: Windows unpackaged MAUI could still report `AppInfo.Current.VersionString` as 1.0 even though the 1.2 exe/dll file version was 1.2.
+- Fixed by adding explicit `<Version>`, `<AssemblyVersion>`, `<FileVersion>`, `<InformationalVersion>` in `Image2Studio.csproj`, updating `Platforms\Windows\app.manifest` to `1.3.0.0`, and making `AppUpdateService.CurrentVersionText` prefer a non-default assembly version before `AppInfo`.
+- 1.3 installer: `C:\Users\ASUS\Desktop\Image2Studio\installer\Image2StudioSetup-1.3-win-x64.exe`
+- 1.3 SHA256: `0C14D680DC5B090938ED40BEB644F6A054C8E945E274DFEF7B6F7F2582C95F17`
+- 1.3 release asset verified with GitHub CLI digest `sha256:0c14d680dc5b090938ed40beb644f6a054c8e945e274dfef7b6f7f2582c95f17`.
 
 1.2 changes made on 2026-05-30:
 - Version bumped to `1.2` / app version `3` in `Image2Studio.csproj`; installer version bumped in `Image2StudioInstaller.iss`.
