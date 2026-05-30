@@ -1,8 +1,8 @@
 {
-  "version": "1.3",
-  "tag": "v1.3",
-  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.3/Image2StudioSetup-1.3-win-x64.exe",
-  "sha256": "0C14D680DC5B090938ED40BEB644F6A054C8E945E274DFEF7B6F7F2582C95F17",
-  "notes": "修复 Windows 安装后软件内仍显示 1.0、导致更新判断不准确的问题，并同步更新 Windows 版本元数据。",
+  "version": "1.4",
+  "tag": "v1.4",
+  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.4/Image2StudioSetup-1.4-win-x64.exe",
+  "sha256": "0A61E6BF9F8E78D6C65EB03870DB8955FB2637EA52B33C314DBB5C5995D434C4",
+  "notes": "自动更新下载完成后打开安装器界面，由安装器提示关闭软件并覆盖安装；更新弹窗支持 Markdown，并且只显示新版本更新日志。",
   "changelogUrl": "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/CHANGELOG.md"
 }

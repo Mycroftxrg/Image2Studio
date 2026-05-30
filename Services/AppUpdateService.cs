@@ -8,8 +8,6 @@ namespace Image2Studio.Services;
 
 public sealed class AppUpdateService
 {
-    private const string LastAutoCheckKey = "update_last_auto_check_utc";
-    private static readonly TimeSpan AutoCheckInterval = TimeSpan.FromHours(12);
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     private readonly HttpClient _httpClient;
@@ -83,7 +81,13 @@ public sealed class AppUpdateService
         try
         {
             var changelog = await _httpClient.GetStringAsync(uri, cancellationToken);
-            return string.IsNullOrWhiteSpace(changelog) ? update.Notes : changelog.Trim();
+            if (string.IsNullOrWhiteSpace(changelog))
+            {
+                return update.Notes;
+            }
+
+            var relevantNotes = ExtractRelevantChangelog(changelog, update);
+            return string.IsNullOrWhiteSpace(relevantNotes) ? update.Notes : relevantNotes;
         }
         catch
         {
@@ -151,7 +155,7 @@ public sealed class AppUpdateService
         return targetPath;
     }
 
-    public Process LaunchInstaller(string installerPath, bool silent = false)
+    public Process LaunchInstaller(string installerPath)
     {
         if (!File.Exists(installerPath))
         {
@@ -165,11 +169,6 @@ public sealed class AppUpdateService
             WorkingDirectory = Path.GetDirectoryName(installerPath) ?? FileSystem.Current.CacheDirectory
         };
 
-        if (silent)
-        {
-            startInfo.Arguments = "/SILENT /SUPPRESSMSGBOXES /CLOSEAPPLICATIONS /NORESTART";
-        }
-
         var process = Process.Start(startInfo);
         if (process is null)
         {
@@ -179,11 +178,10 @@ public sealed class AppUpdateService
         return process;
     }
 
-    public void LaunchInstallerAndQuit(string installerPath)
+    public void LaunchInstallerForUpdate(string installerPath)
     {
-        var installerProcess = LaunchInstaller(installerPath, silent: true);
+        var installerProcess = LaunchInstaller(installerPath);
         ScheduleInstallerCleanup(installerPath, installerProcess.Id);
-        Microsoft.Maui.Controls.Application.Current?.Quit();
     }
 
     private static void ScheduleInstallerCleanup(string installerPath, int installerProcessId)
@@ -226,19 +224,7 @@ public sealed class AppUpdateService
 
     public static bool ShouldRunAutoCheck(Image2Settings settings)
     {
-        if (!settings.AutoCheckUpdates)
-        {
-            return false;
-        }
-
-        var raw = Preferences.Default.Get(LastAutoCheckKey, string.Empty);
-        return !DateTimeOffset.TryParse(raw, out var lastCheck)
-            || DateTimeOffset.UtcNow - lastCheck.ToUniversalTime() >= AutoCheckInterval;
-    }
-
-    public static void MarkAutoCheckCompleted()
-    {
-        Preferences.Default.Set(LastAutoCheckKey, DateTimeOffset.UtcNow.ToString("O"));
+        return settings.AutoCheckUpdates;
     }
 
     private static Version ParseVersion(string value)
@@ -253,6 +239,86 @@ public sealed class AppUpdateService
         return Version.TryParse(clean, out var version)
             ? version
             : new Version(0, 0);
+    }
+
+    private static string ExtractRelevantChangelog(string changelog, UpdateCheckResult update)
+    {
+        var currentVersion = NormalizeVersion(ParseVersion(update.CurrentVersion));
+        var latestVersion = NormalizeVersion(ParseVersion(update.LatestVersion));
+        var sections = new List<string>();
+        var sectionLines = new List<string>();
+        var includeSection = false;
+
+        foreach (var line in changelog.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n'))
+        {
+            if (TryParseChangelogHeadingVersion(line, out var headingVersion))
+            {
+                AddCurrentSection();
+                sectionLines.Clear();
+                sectionLines.Add(line.TrimEnd());
+
+                var normalizedHeadingVersion = NormalizeVersion(headingVersion);
+                includeSection = normalizedHeadingVersion == latestVersion && latestVersion > currentVersion;
+                continue;
+            }
+
+            if (sectionLines.Count > 0)
+            {
+                sectionLines.Add(line.TrimEnd());
+            }
+        }
+
+        AddCurrentSection();
+        return string.Join($"{Environment.NewLine}{Environment.NewLine}", sections);
+
+        void AddCurrentSection()
+        {
+            if (!includeSection || sectionLines.Count == 0)
+            {
+                return;
+            }
+
+            while (sectionLines.Count > 0 && string.IsNullOrWhiteSpace(sectionLines[^1]))
+            {
+                sectionLines.RemoveAt(sectionLines.Count - 1);
+            }
+
+            if (sectionLines.Count > 0)
+            {
+                sections.Add(string.Join(Environment.NewLine, sectionLines).Trim());
+            }
+        }
+    }
+
+    private static bool TryParseChangelogHeadingVersion(string line, out Version version)
+    {
+        version = new Version(0, 0);
+        var trimmed = line.Trim();
+        if (!trimmed.StartsWith("## ", StringComparison.Ordinal) || trimmed.StartsWith("### ", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        var heading = trimmed[3..].Trim();
+        var separatorIndex = heading.IndexOfAny(new[] { ' ', '-' });
+        var token = separatorIndex >= 0 ? heading[..separatorIndex] : heading;
+        token = token.Trim('[', ']', 'v', 'V');
+        if (!Version.TryParse(token, out var parsed) || parsed is null)
+        {
+            return false;
+        }
+
+        version = parsed;
+        return true;
+    }
+
+    private static Version NormalizeVersion(Version version)
+    {
+        return new Version(
+            version.Major < 0 ? 0 : version.Major,
+            version.Minor < 0 ? 0 : version.Minor,
+            version.Build < 0 ? 0 : version.Build,
+            version.Revision < 0 ? 0 : version.Revision);
     }
 
     private static async Task<string> ComputeSha256Async(string filePath, CancellationToken cancellationToken)
