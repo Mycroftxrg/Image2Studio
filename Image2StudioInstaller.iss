@@ -1,5 +1,5 @@
 #define MyAppName "Image2 Studio"
-#define MyAppVersion "1.4.2"
+#define MyAppVersion "1.4.3"
 #define MyAppPublisher "Image2Studio"
 #define MyAppExeName "Image2Studio.exe"
 #define SourceDir "C:\Users\ASUS\Desktop\Image2Studio\bin\Release\net10.0-windows10.0.19041.0\win-x64\publish"

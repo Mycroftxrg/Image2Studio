@@ -1,8 +1,8 @@
 {
-  "version": "1.4.2",
-  "tag": "v1.4.2",
-  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.4.2/Image2StudioSetup-1.4.2-win-x64.exe",
-  "sha256": "54856737A1FC32FF8EE082CE3EA67D8AE370CF6FDE727C244E8CD2B9041D1E66",
-  "notes": "修复自动更新下载完成后，安装包文件仍被下载流程占用，导致校验失败的问题。",
+  "version": "1.4.3",
+  "tag": "v1.4.3",
+  "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.4.3/Image2StudioSetup-1.4.3-win-x64.exe",
+  "sha256": "58A4EDC2294C021C7C40F8229AD085D8A6B42D9EA0B9AA111C64E1CEDAE34898",
+  "notes": "仅更新版本号和安装包元数据，用于再次验证自动更新流程。",
   "changelogUrl": "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/CHANGELOG.md"
 }
