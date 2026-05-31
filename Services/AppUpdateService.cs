@@ -119,25 +119,28 @@ public sealed class AppUpdateService
         }
 
         var totalLength = response.Content.Headers.ContentLength;
-        await using var input = await response.Content.ReadAsStreamAsync(cancellationToken);
-        await using var output = File.Create(targetPath);
-
-        var buffer = new byte[128 * 1024];
-        long copied = 0;
-        while (true)
+        await using (var input = await response.Content.ReadAsStreamAsync(cancellationToken))
+        await using (var output = File.Create(targetPath))
         {
-            var read = await input.ReadAsync(buffer, cancellationToken);
-            if (read == 0)
+            var buffer = new byte[128 * 1024];
+            long copied = 0;
+            while (true)
             {
-                break;
+                var read = await input.ReadAsync(buffer, cancellationToken);
+                if (read == 0)
+                {
+                    break;
+                }
+
+                await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
+                copied += read;
+                if (totalLength is > 0)
+                {
+                    progress?.Report((double)copied / totalLength.Value);
+                }
             }
 
-            await output.WriteAsync(buffer.AsMemory(0, read), cancellationToken);
-            copied += read;
-            if (totalLength is > 0)
-            {
-                progress?.Report((double)copied / totalLength.Value);
-            }
+            await output.FlushAsync(cancellationToken);
         }
 
         progress?.Report(1);
