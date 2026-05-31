@@ -31,7 +31,7 @@ public partial class SettingsPage : ContentPage
         AsyncTaskCheckBox.IsChecked = settings.UseAsyncTask;
         AutoCheckUpdatesCheckBox.IsChecked = settings.AutoCheckUpdates;
         UpdateManifestUrlEntry.Text = settings.UpdateManifestUrl;
-        UpdateStatusLabel.Text = $"当前版本 {Services.AppUpdateService.CurrentVersionText}";
+        UpdateStatusLabel.Text = $"当前版本 {Services.AppUpdateService.CurrentVersionText} / {GetUpdatePackageText()}";
         DeepSeekApiKeyEntry.Text = settings.DeepSeekApiKey;
         DeepSeekBaseUrlEntry.Text = settings.DeepSeekBaseUrl;
         SetPickerValue(DeepSeekModelPicker, settings.DeepSeekModel);
@@ -135,7 +135,7 @@ public partial class SettingsPage : ContentPage
             UseAsyncTask = AsyncTaskCheckBox.IsChecked,
             AutoCheckUpdates = AutoCheckUpdatesCheckBox.IsChecked,
             UpdateManifestUrl = string.IsNullOrWhiteSpace(UpdateManifestUrlEntry.Text)
-                ? Image2Settings.DefaultUpdateManifestUrl
+                ? Image2Settings.GetDefaultUpdateManifestUrl()
                 : UpdateManifestUrlEntry.Text.Trim(),
             SaveLocationIndex = SaveLocationPicker.SelectedIndex <= 0 ? 0 : 1,
             AdditionalConnectionsText = SerializeConnectionCards(),
@@ -158,9 +158,9 @@ public partial class SettingsPage : ContentPage
     {
         SaveSettings();
 
-        if (!OperatingSystem.IsWindows())
+        if (!Services.AppUpdateService.ShouldRunAutoCheck(new Image2Settings { AutoCheckUpdates = true }))
         {
-            await DisplayAlertAsync("检查更新", "当前更新功能只处理 Windows 安装包。", "知道了");
+            await DisplayAlertAsync("检查更新", "当前平台暂不支持自动下载安装。", "知道了");
             return;
         }
 
@@ -198,8 +198,15 @@ public partial class SettingsPage : ContentPage
                 UpdateStatusLabel.Text = $"正在下载更新 {Math.Clamp(value, 0, 1):P0}";
             });
             var installerPath = await _updateService.DownloadInstallerAsync(update, progress);
-            UpdateStatusLabel.Text = "更新已下载，正在打开安装程序...";
+            UpdateStatusLabel.Text = OperatingSystem.IsAndroid()
+                ? "APK 已下载，正在打开系统安装器..."
+                : "更新已下载，正在打开安装程序...";
             _updateService.LaunchInstallerForUpdate(installerPath);
+        }
+        catch (Services.MissingPlatformUpdateAssetException ex)
+        {
+            UpdateStatusLabel.Text = "当前平台暂无更新包。";
+            await DisplayAlertAsync("检查更新", ex.Message, "知道了");
         }
         catch (Exception ex)
         {
@@ -482,6 +489,15 @@ public partial class SettingsPage : ContentPage
         }
 
         return Colors.Transparent;
+    }
+
+    private static string GetUpdatePackageText()
+    {
+        return OperatingSystem.IsAndroid()
+            ? "Android APK 更新"
+            : OperatingSystem.IsWindows()
+                ? "Windows 安装包更新"
+                : "当前平台不支持自动更新";
     }
 
     private sealed record ConnectionCardState(string Title, string ApiKey);

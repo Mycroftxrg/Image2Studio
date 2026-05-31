@@ -9,7 +9,9 @@ public sealed class Image2Settings
     public const string DefaultPrompt = "";
     public const string DefaultDeepSeekBaseUrl = "https://api.deepseek.com";
     public const string DefaultDeepSeekModel = "deepseek-chat";
-    public const string DefaultUpdateManifestUrl = "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/latest.json";
+    public const string DefaultWindowsUpdateManifestUrl = "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/latest-windows.json";
+    public const string DefaultAndroidUpdateManifestUrl = "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/latest-android.json";
+    public const string DefaultUpdateManifestUrl = DefaultWindowsUpdateManifestUrl;
     public const string DefaultDeepSeekSystemPrompt = """
 你是 Image2 Studio 的专业图像生成提示词扩写助手。
 目标：把用户的简短想法扩写成可直接用于高质量图像生成的完整提示词。
@@ -71,7 +73,7 @@ public sealed class Image2Settings
             DeepSeekModel = Preferences.Default.Get("deepseek_model", DefaultDeepSeekModel),
             DeepSeekSystemPrompt = Preferences.Default.Get("deepseek_system_prompt", DefaultDeepSeekSystemPrompt),
             AutoCheckUpdates = Preferences.Default.Get("auto_check_updates", true),
-            UpdateManifestUrl = Preferences.Default.Get("update_manifest_url", DefaultUpdateManifestUrl)
+            UpdateManifestUrl = NormalizeUpdateManifestUrl(Preferences.Default.Get("update_manifest_url", GetDefaultUpdateManifestUrl()))
         };
     }
 
@@ -98,7 +100,7 @@ public sealed class Image2Settings
         Preferences.Default.Set("deepseek_model", string.IsNullOrWhiteSpace(DeepSeekModel) ? DefaultDeepSeekModel : DeepSeekModel.Trim());
         Preferences.Default.Set("deepseek_system_prompt", string.IsNullOrWhiteSpace(DeepSeekSystemPrompt) ? DefaultDeepSeekSystemPrompt : DeepSeekSystemPrompt.Trim());
         Preferences.Default.Set("auto_check_updates", AutoCheckUpdates);
-        Preferences.Default.Set("update_manifest_url", string.IsNullOrWhiteSpace(UpdateManifestUrl) ? DefaultUpdateManifestUrl : UpdateManifestUrl.Trim());
+        Preferences.Default.Set("update_manifest_url", NormalizeUpdateManifestUrl(UpdateManifestUrl));
     }
 
     public IReadOnlyList<Image2ConnectionProfile> GetConnectionProfiles()
@@ -190,6 +192,26 @@ public sealed class Image2Settings
         return path is "/v1/images/generations" or "/v1/images/edits" or "/v1/chat/completions" or "/v1/image-tasks/generations" or "/v1/image-tasks/edits"
             ? $"{uri.Scheme}://{uri.Authority}"
             : input;
+    }
+
+    public static string GetDefaultUpdateManifestUrl()
+    {
+        return DeviceInfo.Platform == DevicePlatform.Android
+            ? DefaultAndroidUpdateManifestUrl
+            : DefaultWindowsUpdateManifestUrl;
+    }
+
+    private static string NormalizeUpdateManifestUrl(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return GetDefaultUpdateManifestUrl();
+        }
+
+        var trimmed = value.Trim();
+        return string.Equals(trimmed, "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/latest.json", StringComparison.OrdinalIgnoreCase)
+            ? GetDefaultUpdateManifestUrl()
+            : trimmed;
     }
 
     private static string NormalizePrompt(string? prompt)

@@ -19,11 +19,6 @@ public partial class App : Application
 
     private async void OnWindowCreated(object? sender, EventArgs e)
     {
-        if (!OperatingSystem.IsWindows())
-        {
-            return;
-        }
-
         var settings = Image2Settings.Load();
         if (!AppUpdateService.ShouldRunAutoCheck(settings))
         {
@@ -51,6 +46,10 @@ public partial class App : Application
 
             var installerPath = await updateService.DownloadInstallerAsync(update);
             updateService.LaunchInstallerForUpdate(installerPath);
+        }
+        catch (MissingPlatformUpdateAssetException)
+        {
+            // Release metadata may be staged for another platform first. Manual checks show this message.
         }
         catch (Exception ex)
         {

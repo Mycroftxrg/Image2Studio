@@ -3,8 +3,19 @@ using System.Net.Http.Headers;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text.Json;
+#if ANDROID
+using Android.Content;
+using Microsoft.Maui.ApplicationModel;
+#endif
 
 namespace Image2Studio.Services;
+
+public sealed class MissingPlatformUpdateAssetException : InvalidOperationException
+{
+    public MissingPlatformUpdateAssetException(string message) : base(message)
+    {
+    }
+}
 
 public sealed class AppUpdateService
 {
@@ -52,10 +63,12 @@ public sealed class AppUpdateService
         var manifest = JsonSerializer.Deserialize<UpdateManifest>(raw, JsonOptions)
             ?? throw new InvalidOperationException("更新信息格式无效。");
 
-        if (string.IsNullOrWhiteSpace(manifest.Version) || string.IsNullOrWhiteSpace(manifest.Url))
+        if (string.IsNullOrWhiteSpace(manifest.Version))
         {
-            throw new InvalidOperationException("更新信息缺少版本号或下载地址。");
+            throw new InvalidOperationException("更新信息缺少版本号。");
         }
+
+        var asset = ResolvePlatformAsset(manifest);
 
         var currentVersion = ParseVersion(CurrentVersionText);
         var latestVersion = ParseVersion(manifest.Version);
@@ -64,8 +77,8 @@ public sealed class AppUpdateService
             IsUpdateAvailable: latestVersion > currentVersion,
             CurrentVersion: CurrentVersionText,
             LatestVersion: manifest.Version.Trim().TrimStart('v', 'V'),
-            DownloadUrl: manifest.Url.Trim(),
-            Sha256: manifest.Sha256?.Trim() ?? string.Empty,
+            DownloadUrl: asset.Url,
+            Sha256: asset.Sha256,
             Notes: manifest.Notes?.Trim() ?? string.Empty,
             ChangelogUrl: manifest.ChangelogUrl?.Trim() ?? string.Empty);
     }
@@ -103,9 +116,10 @@ public sealed class AppUpdateService
         }
 
         var fileName = Path.GetFileName(uri.LocalPath);
-        if (string.IsNullOrWhiteSpace(fileName) || !fileName.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
+        var expectedExtension = GetInstallerExtension();
+        if (string.IsNullOrWhiteSpace(fileName) || !fileName.EndsWith(expectedExtension, StringComparison.OrdinalIgnoreCase))
         {
-            fileName = $"Image2StudioSetup-{update.LatestVersion}-win-x64.exe";
+            fileName = GetDefaultInstallerFileName(update.LatestVersion);
         }
 
         var downloadDir = Path.Combine(FileSystem.Current.CacheDirectory, "updates");
@@ -160,6 +174,10 @@ public sealed class AppUpdateService
 
     public Process LaunchInstaller(string installerPath)
     {
+#if ANDROID
+        LaunchAndroidPackageInstaller(installerPath);
+        return Process.GetCurrentProcess();
+#else
         if (!File.Exists(installerPath))
         {
             throw new FileNotFoundException("更新安装包不存在。", installerPath);
@@ -179,12 +197,15 @@ public sealed class AppUpdateService
         }
 
         return process;
+#endif
     }
 
     public void LaunchInstallerForUpdate(string installerPath)
     {
         var installerProcess = LaunchInstaller(installerPath);
+#if WINDOWS
         ScheduleInstallerCleanup(installerPath, installerProcess.Id);
+#endif
     }
 
     private static void ScheduleInstallerCleanup(string installerPath, int installerProcessId)
@@ -227,8 +248,90 @@ public sealed class AppUpdateService
 
     public static bool ShouldRunAutoCheck(Image2Settings settings)
     {
-        return settings.AutoCheckUpdates;
+        return settings.AutoCheckUpdates && (OperatingSystem.IsWindows() || OperatingSystem.IsAndroid());
     }
+
+    private static (string Url, string Sha256) ResolvePlatformAsset(UpdateManifest manifest)
+    {
+#if ANDROID
+        var url = FirstNonEmpty(manifest.AndroidUrl, IsApkUrl(manifest.Url) ? manifest.Url : null);
+        var sha256 = FirstNonEmpty(manifest.AndroidSha256, IsApkUrl(manifest.Url) ? manifest.Sha256 : null);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new MissingPlatformUpdateAssetException("更新信息缺少 Android APK 下载地址。");
+        }
+#elif WINDOWS
+        var url = FirstNonEmpty(manifest.WindowsUrl, IsExeUrl(manifest.Url) ? manifest.Url : null, manifest.Url);
+        var sha256 = FirstNonEmpty(manifest.WindowsSha256, manifest.Sha256);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new MissingPlatformUpdateAssetException("更新信息缺少 Windows 安装包下载地址。");
+        }
+#else
+        var url = FirstNonEmpty(manifest.Url);
+        var sha256 = FirstNonEmpty(manifest.Sha256);
+        if (string.IsNullOrWhiteSpace(url))
+        {
+            throw new MissingPlatformUpdateAssetException("当前平台没有可用的更新安装包。");
+        }
+#endif
+
+        return (url.Trim(), sha256?.Trim() ?? string.Empty);
+    }
+
+    private static string? FirstNonEmpty(params string?[] values)
+    {
+        return values.FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+    }
+
+    private static bool IsApkUrl(string? value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+               uri.AbsolutePath.EndsWith(".apk", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsExeUrl(string? value)
+    {
+        return Uri.TryCreate(value, UriKind.Absolute, out var uri) &&
+               uri.AbsolutePath.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetInstallerExtension()
+    {
+#if ANDROID
+        return ".apk";
+#else
+        return ".exe";
+#endif
+    }
+
+    private static string GetDefaultInstallerFileName(string version)
+    {
+#if ANDROID
+        return $"Image2Studio-{version}-android.apk";
+#else
+        return $"Image2StudioSetup-{version}-win-x64.exe";
+#endif
+    }
+
+#if ANDROID
+    private static void LaunchAndroidPackageInstaller(string apkPath)
+    {
+        if (!File.Exists(apkPath))
+        {
+            throw new FileNotFoundException("更新安装包不存在。", apkPath);
+        }
+
+        var activity = Platform.CurrentActivity ??
+                       throw new InvalidOperationException("找不到当前 Android Activity。");
+        var authority = $"{activity.PackageName}.fileprovider";
+        var apkUri = AndroidX.Core.Content.FileProvider.GetUriForFile(activity, authority, new Java.IO.File(apkPath));
+        var intent = new Intent(Intent.ActionView);
+        intent.SetDataAndType(apkUri, "application/vnd.android.package-archive");
+        intent.AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.NewTask);
+        activity.StartActivity(intent);
+    }
+#endif
 
     private static Version ParseVersion(string value)
     {
@@ -336,7 +439,11 @@ public sealed class AppUpdateService
         string Url,
         string? Sha256,
         string? Notes,
-        string? ChangelogUrl);
+        string? ChangelogUrl,
+        string? WindowsUrl,
+        string? WindowsSha256,
+        string? AndroidUrl,
+        string? AndroidSha256);
 }
 
 public sealed record UpdateCheckResult(

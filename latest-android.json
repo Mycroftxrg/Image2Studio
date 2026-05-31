@@ -1,0 +1,8 @@
+{
+  "version": "1.5.0",
+  "tag": "v1.5.0",
+  "androidUrl": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.5.0/Image2Studio-1.5.0-android.apk",
+  "androidSha256": "",
+  "notes": "Android 支持自动检查更新、下载 APK 并打开系统安装器；历史版本重生引用上一版本结果图支持 Android content 路径和远程 URL；修复横竖屏切换后首页卡片遮挡。",
+  "changelogUrl": "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/CHANGELOG.md"
+}

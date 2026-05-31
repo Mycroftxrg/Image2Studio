@@ -3,6 +3,6 @@
   "tag": "v1.4.3",
   "url": "https://github.com/Mycroftxrg/Image2Studio/releases/download/v1.4.3/Image2StudioSetup-1.4.3-win-x64.exe",
   "sha256": "58A4EDC2294C021C7C40F8229AD085D8A6B42D9EA0B9AA111C64E1CEDAE34898",
-  "notes": "仅更新版本号和安装包元数据，用于再次验证自动更新流程。",
+  "notes": "旧版兼容更新入口。1.5.0 起 Windows 和 Android 使用分开的 latest-windows.json / latest-android.json。",
   "changelogUrl": "https://raw.githubusercontent.com/Mycroftxrg/Image2Studio/main/CHANGELOG.md"
 }

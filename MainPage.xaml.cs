@@ -472,6 +472,11 @@ public partial class MainPage : ContentPage
 
     private View CreateDropReferencePanel(View content, Func<FileResult[], Task> onFilesDropped)
     {
+        if (DeviceInfo.Platform != DevicePlatform.WinUI)
+        {
+            return content;
+        }
+
         var dropGesture = new DropGestureRecognizer { AllowDrop = true };
         dropGesture.DragOver += (_, e) =>
         {
@@ -1680,6 +1685,17 @@ public partial class MainPage : ContentPage
             return await File.ReadAllBytesAsync(imagePath);
         }
 
+        if (!string.IsNullOrWhiteSpace(imagePath) &&
+            OutputFolderWriter.IsDocumentTreePath(imagePath) &&
+            TrySplitDocumentRelativePath(imagePath, out var folderPath, out var relativePath))
+        {
+            var bytes = await OutputFolderWriter.ReadBytesAsync(folderPath, relativePath);
+            if (bytes is { Length: > 0 })
+            {
+                return bytes;
+            }
+        }
+
         if (!string.IsNullOrWhiteSpace(imageUrl) && Uri.TryCreate(imageUrl, UriKind.Absolute, out var uri))
         {
             using var http = new HttpClient();
@@ -1687,6 +1703,58 @@ public partial class MainPage : ContentPage
         }
 
         return null;
+    }
+
+    private static bool HasReadableResultImage(string? imagePath, string? imageUrl)
+    {
+        return !string.IsNullOrWhiteSpace(imageUrl) ||
+               !string.IsNullOrWhiteSpace(imagePath) &&
+               (File.Exists(imagePath) || OutputFolderWriter.IsDocumentTreePath(imagePath));
+    }
+
+    private static async Task<FileResult> CreatePreviousResultFileResultAsync(Image2HistoryEntry history)
+    {
+        if (!string.IsNullOrWhiteSpace(history.ImagePath) && File.Exists(history.ImagePath))
+        {
+            return new FileResult(history.ImagePath)
+            {
+                FileName = BuildResultReferenceFileName(history)
+            };
+        }
+
+        var bytes = await LoadResultImageBytesAsync(history.ImagePath, history.ImageUrl);
+        if (bytes is null || bytes.Length == 0)
+        {
+            throw new InvalidOperationException("上一版本结果图无法读取。");
+        }
+
+        var tempPath = System.IO.Path.Combine(
+            FileSystem.Current.CacheDirectory,
+            "previous-results",
+            Guid.NewGuid().ToString("N"),
+            BuildResultReferenceFileName(history));
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(tempPath)!);
+        await File.WriteAllBytesAsync(tempPath, bytes);
+        return new FileResult(tempPath)
+        {
+            FileName = System.IO.Path.GetFileName(tempPath)
+        };
+    }
+
+    private static bool TrySplitDocumentRelativePath(string path, out string folderPath, out string relativePath)
+    {
+        folderPath = string.Empty;
+        relativePath = string.Empty;
+
+        var separatorIndex = path.LastIndexOf('/');
+        if (separatorIndex <= "content://".Length || separatorIndex >= path.Length - 1)
+        {
+            return false;
+        }
+
+        folderPath = path[..separatorIndex];
+        relativePath = path[(separatorIndex + 1)..];
+        return !string.IsNullOrWhiteSpace(folderPath) && !string.IsNullOrWhiteSpace(relativePath);
     }
 
     private Image2QueuedTask CreateFolderBackfillTask(Image2HistoryEntry history)
@@ -2032,8 +2100,7 @@ public partial class MainPage : ContentPage
         var addPreviousResultButton = CreateActionButton("引用上一版本结果图", ResourceColor("ControlBg"), ResourceColor("TextStrong"));
         addPreviousResultButton.IsVisible = rerunSource is not null;
         addPreviousResultButton.IsEnabled = rerunSource is not null &&
-            !string.IsNullOrWhiteSpace(rerunSource.ImagePath) &&
-            File.Exists(rerunSource.ImagePath);
+            HasReadableResultImage(rerunSource.ImagePath, rerunSource.ImageUrl);
         addPreviousResultButton.Clicked += async (_, _) =>
         {
             if (rerunSource is null)
@@ -2041,23 +2108,23 @@ public partial class MainPage : ContentPage
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(rerunSource.ImagePath) || !File.Exists(rerunSource.ImagePath))
+            if (!HasReadableResultImage(rerunSource.ImagePath, rerunSource.ImageUrl))
             {
-                await DisplayAlertAsync("没有本地结果图", "上一版本没有可引用的本地结果图片。", "知道了");
+                await DisplayAlertAsync("没有结果图", "上一版本没有可引用的结果图片。", "知道了");
                 return;
             }
 
+            var referenceKey = !string.IsNullOrWhiteSpace(rerunSource.ImagePath)
+                ? rerunSource.ImagePath
+                : rerunSource.ImageUrl;
             if (localReferences.Any(item =>
-                    string.Equals(item.File.FullPath, rerunSource.ImagePath, StringComparison.OrdinalIgnoreCase)))
+                    string.Equals(item.File.FullPath, referenceKey, StringComparison.OrdinalIgnoreCase)))
             {
                 await DisplayAlertAsync("已添加", "上一版本结果图已经在参考图列表中。", "知道了");
                 return;
             }
 
-            var file = new FileResult(rerunSource.ImagePath)
-            {
-                FileName = BuildResultReferenceFileName(rerunSource)
-            };
+            var file = await CreatePreviousResultFileResultAsync(rerunSource);
             localReferences.Add(await CreateReferenceImageItemAsync(file, null));
             modePicker.SelectedIndex = 1;
             RefreshReferences();
@@ -4208,6 +4275,12 @@ public partial class MainPage : ContentPage
         var twoColumn = width >= 820 && !threeColumn;
         WorkspaceGrid.ColumnDefinitions.Clear();
         WorkspaceGrid.RowDefinitions.Clear();
+        Grid.SetColumnSpan(EditorColumn, 1);
+        Grid.SetRowSpan(EditorColumn, 1);
+        Grid.SetColumnSpan(QueueColumn, 1);
+        Grid.SetRowSpan(QueueColumn, 1);
+        Grid.SetColumnSpan(ResultColumn, 1);
+        Grid.SetRowSpan(ResultColumn, 1);
 
         if (threeColumn)
         {
